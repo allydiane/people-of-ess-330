@@ -1,12 +1,10 @@
 ---
 title: "Exercise 21 and 22"
-subtitle: 'ESS 330'
+subtitle: 'Ecosystem Science and Sustainability 523c'
 author:
   - name: Ally Lewis
-    email: "adlewis1@colostate.edu"
-format:
-  html:
-    self-contained: true
+    email: adlewis1@colostate.edu
+format: html
 ---
 
 ```{r}
