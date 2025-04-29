@@ -7,6 +7,8 @@ author:
 format: html
 ---
 
+
+#Exercise 21: 
 ```{r}
 library(dataRetrieval)
 library(tidyverse)
@@ -62,7 +64,113 @@ poud_decomp <- stl(poud_tbl, s.window = "periodic") |>
 
 #Seasonal streamflow has stayed relatively the same across the data, which spans over a 10 year period.  see small patterns of lower streamflow in 2020 versus higher streamflow in 2014-2016. Seasonal portrayal of the data is the most effective due to the seasonal changes of streamflow, which increase and decrease in relation to snowmelt and rainfall. 
 
+#Exercise 22: 
 
+#Modeltime 12 month prediction: 
+```{r}
+library(modeltime)
+library(tidymodels)
+library(timetk)
 
+poud_pred_tbl <- tsibble::as_tsibble(poudre_flow) |>
+  as_tibble() |>
+  mutate(date = as.Date(Date), Date = NULL)
 
+splits <- time_series_split(poud_pred_tbl, assess = "12 months", cumulative = TRUE)
 
+poud_training <- training(splits)
+poud_testing <- testing(splits)
+```
+
+#Prophet Model
+```{r}
+proph_mod <- arima_reg() |> set_engine("auto_arima")
+arima_mod <- prophet_reg() |> set_engine("prophet")
+
+mods <- list(
+  fit(proph_mod, Flow ~ date, data = poud_training), 
+  fit(arima_mod, Flow ~ date, data = poud_training)
+)
+```
+
+```{r}
+models_tbl <- as_modeltime_table(mods)
+print(models_tbl)
+```
+
+```{r}
+calibration_table <- models_tbl |>
+  modeltime_calibrate(new_data = poud_testing)
+print(calibration_table)
+```
+
+```{r}
+modeltime_accuracy(calibration_table) |>
+  arrange(mae)
+```
+
+```{r}
+(forecast <- calibration_table |>
+   modeltime_forecast(h = "12 months", 
+                      new_data = poud_testing, 
+                      actual_data = poud_tbl))
+```
+
+```{r}
+plot_modeltime_forecast(forecast)
+```
+
+```{r}
+refit_tbl <- calibration_table |>
+  modeltime_refit(data = poud_pred_tbl)
+
+refit_tbl |>
+  modeltime_forecast(h = "12 months", actual_data = poud_tbl) |>
+  plot_modeltime_forecast()
+```
+
+#Data Retrieval
+```{r}
+library(dataRetrieval)
+
+real_poudre_flow <- readNWISdv(siteNumber = "06752260", 
+                               startDate = "2024-01-01", 
+                               endDate = "2024-12-31", 
+                               parameterCd = "00060") |>
+  renameNWISColumns() |>
+  mutate(month = yearmonth(Date)) |> 
+  group_by(month) |>
+  summarise(real_flow = mean(Flow))
+```
+
+```{r}
+preds <- forecast %>%
+  filter(.key == "prediction") %>%
+  select(month = .index, predicted = .value)
+
+comparison <- left_join(preds, real_poudre_flow, by = "month") %>%
+  drop_na()
+```
+
+#R-Squared
+```{r}
+rsq_val <- lm(real_flow ~ predicted, data = comparison) %>%
+  glance() %>%
+  pull(r.squared)
+print(rsq_val)
+```
+
+#The model explains 82% of the variance, or is 82% accurate in comparison to the actual data. 
+
+#Predicted vs Observed Plot
+```{r}
+ggplot(comparison, aes(x = real_flow, y = predicted)) + 
+  geom_point(size = 3, color = "lightblue") + 
+  geom_smooth(method = "lm", color = "blue", se = FALSE) + 
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "black") + 
+  labs(
+    title = "Predicted Versus Observed Streamflow", 
+    x = "Observed (cfs)", 
+    y = "Predicted (cfs)") + 
+  theme_minimal()
+```
