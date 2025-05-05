@@ -1,0 +1,73 @@
+---
+title: "Daily exercise 25"
+format: html
+---
+
+```{r}
+#1. 
+library(AOI)
+library(ggplot2)
+library(sf)
+library(tidyverse)
+library(tigris)
+
+options(tigris_use_cache = TRUE)
+
+#2. 
+rivers_sf <- read_sf("/Users/allylewis/ESS330/people-of-ess-330/MajorRivers.shp") 
+
+#3. 
+mississippi_sf <- rivers_sf[rivers_sf$NAME == "Mississippi", ]
+
+#4. 
+counties_sf <- aoi_get(state = "conus")
+
+#5. 
+intersect_counties <- counties_sf %>% st_filter(mississippi_sf)
+
+#6. 
+ggplot() +
+  geom_sf(data = mississippi_sf, color = "blue", size = 1) +
+  geom_sf(data = intersect_counties, fill = "lightblue", color = "black", alpha = 0.5) +
+  theme_minimal() +
+  ggtitle("Counties Intersecting the Mississippi River System") +
+  theme(axis.text = element_blank(), axis.title = element_blank())
+
+#7. 
+cities <- read_csv("/Users/allylewis/ESS330/people-of-ess-330/uscities.csv")
+
+#8. 
+cities_sf <- st_as_sf(cities, coords = c("lng", "lat"), crs = 4326)
+
+cities_sf <- st_transform(cities_sf, st_crs(intersect_counties))
+
+cities_in_mississippi_counties <- st_join(cities_sf, intersect_counties)
+
+#9. 
+population_by_county <- cities_in_mississippi_counties %>%
+  group_by(fip_code) %>%
+  summarize(total_population = sum(population, na.rm = TRUE))
+
+population_by_county_sf <- st_as_sf(population_by_county, coords = c("longitude", "latitude"), crs = 4326)
+
+counties_with_population <- st_join(intersect_counties, population_by_county_sf)
+
+#10. 
+ggplot() +
+  geom_sf(data = mississippi_sf, color = "blue", size = 1) +
+  geom_sf(data = counties_with_population, aes(fill = total_population), color = "black", alpha = 0.5) +
+  scale_fill_viridis_c(option = "C") +  # Color scale for population
+  theme_minimal() +
+  ggtitle("Counties Intersecting the Mississippi River System (By Population)") +
+  theme(axis.text = element_blank(), axis.title = element_blank())
+
+#11. 
+ggsave("/Users/allylewis/ESS330/people-of-ess-330/images/mississippi_river_counties_population.png")
+
+```
+
+
+
+
+
+

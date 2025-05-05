@@ -239,8 +239,8 @@ ggplot() +
 #3.4
 ```{r}
 cities <- cities %>%
-  mutate(dist_to_mexico = set_units(st_distance(., mexico_border), "km")) %>%
-  mutate(dist_to_canada = set_units(st_distance(., canada_border), "km")) %>%
+  mutate(dist_to_mexico = set_units(st_distance(., mexico_boundary), "km")) %>%
+  mutate(dist_to_canada = set_units(st_distance(., canada_boundary), "km")) %>%
   mutate(dist_to_border = set_units(st_distance(., state_union), "km"))
 
 eqdist <- cities %>%
@@ -257,7 +257,7 @@ top_5_eqdist <- eqdist_zone %>%
 ggplot() + 
   geom_sf(data = continents, lty = 3, alpha = .5) +
   geom_sf(data = states, size = 1, fill = "NA", color = "grey") + 
-  geom_sf(data = conus, size = 1.5, fill = "NA", color = "black") + 
+  geom_sf(data = cities, size = 1.5, fill = "NA", color = "black") + 
   geom_sf(data = eqdist) + 
   gghighlight::gghighlight(abs(equidist_diff) < 100) + 
   geom_sf(data = top_5_eqdist, size = 2, color = "red") + 
@@ -350,44 +350,5 @@ ggplot() +
   labs(title = "Most Populous US Cities Within 100 Miles of the Border") + 
   ggthemes::theme_map()
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
