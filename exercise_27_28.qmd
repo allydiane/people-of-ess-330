@@ -1,0 +1,151 @@
+---
+title: "Daily Exercise 27 and 28"
+format: html
+---
+
+#1
+```{r}
+library(osmdata)
+library(sf)
+
+bbox_fort_collins <- c(-105.15, 40.45, -105.00, 40.70)  # (xmin, ymin, xmax, ymax)
+
+osm_data <- opq(bbox = bbox_fort_collins) %>%
+  add_osm_feature(key = 'waterway') %>%
+  osmdata_sf()
+
+osm_lines <- osm_data$osm_lines
+```
+
+#2
+```{r}
+library(dplyr)
+
+poudre_river <- osm_lines %>%
+  filter(name == "Cache la Poudre River")
+
+poudre_river_union <- st_union(poudre_river)
+
+poudre_river_sf <- st_as_sf(poudre_river_union)
+```
+
+#3
+```{r}
+river_length <- st_length(poudre_river_sf)
+print(river_length)
+```
+
+#4
+```{r}
+poudre_pts <- st_cast(poudre_river_sf, "POINT")
+
+plot(poudre_pts)
+```
+
+```{r}
+url <- 'https://raw.githubusercontent.com/mikejohnson51/csu-ess-330/refs/heads/main/resources/foco-elev-cm.tif'
+
+local_file <- tempfile(fileext = ".tif")
+
+download.file(url, local_file, mode = "wb")
+```
+
+#5
+```{r}
+library(terra)
+library(raster)
+
+elevation_raster <- rast(local_file)
+
+print(elevation_raster)
+
+elevation_df <- as.data.frame(elevation_raster, xy = TRUE)
+
+head(elevation_df)
+
+plot(elevation_raster)
+```
+
+#6
+```{r}
+elevation_values <- terra::extract(elevation_raster, vect(poudre_pts))
+```
+
+#7
+```{r}
+poudre_pts_elevation <- bind_cols(poudre_pts, elevation_values)
+```
+
+#8
+```{r}
+poudre_pts_elevation <- poudre_pts_elevation %>%
+  mutate(ID = seq(1, n()))
+```
+
+#9
+```{r}
+straight_line_distance <- st_distance(poudre_pts_elevation[1,], poudre_pts_elevation[nrow(poudre_pts_elevation),])
+
+sinuosity <- river_length / straight_line_distance
+print(sinuosity)
+```
+
+#10
+```{r}
+elevation_change <- abs(poudre_pts_elevation$dem[1] - poudre_pts_elevation$dem[nrow(poudre_pts_elevation)])
+
+slope <- elevation_change / river_length
+print(slope)
+```
+
+#11
+```{r}
+library(ggplot2)
+
+ggplot(poudre_pts_elevation, aes(x = ID, y = dem)) +
+  geom_line() +
+  labs(title = "Elevation Profile of the Cache la Poudre River",
+       x = "Point ID",
+       y = "Elevation (cm)") +
+  theme_minimal()
+```
+
+#12
+```{r}
+ggplot() +
+  geom_sf(data = poudre_pts_elevation, aes(color = dem)) +
+  scale_color_viridis_c() +
+  labs(title = "Spatial Map of Cache la Poudre River by Elevation",
+       color = "Elevation (cm)") +
+  theme_minimal()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

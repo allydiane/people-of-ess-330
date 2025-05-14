@@ -1,0 +1,59 @@
+---
+title: "Daily exercise 26"
+format: html
+---
+
+#1
+```{r}
+url <- 'https://raw.githubusercontent.com/mikejohnson51/csu-ess-330/refs/heads/main/resources/foco-elev-cm.tif'
+
+local_file <- tempfile(fileext = ".tif")
+
+download.file(url, local_file, mode = "wb")
+```
+
+#2
+```{r}
+library(raster)
+
+elevation_raster <- raster(local_file)
+
+print(elevation_raster)
+str(elevation_df)
+head(elevation_df)
+```
+
+#3
+```{r}
+elevation_raster_ft <- elevation_raster * 0.0328084
+
+elevation_df <- as.data.frame(values(elevation_raster_ft), dataframe = TRUE)
+
+library(ggpubr)
+
+ggplot(elevation_df, aes(x = values(elevation_raster_ft))) +
+  geom_density(fill = "skyblue", color = "darkblue") +
+  labs(title = "Density Plot of Elevation Data (Feet)",
+       x = "Elevation (Feet)",
+       y = "Density") +
+  theme_minimal()
+```
+
+#4
+```{r}
+ggsave("elevation_density_plot.png", width = 8, height = 6)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
